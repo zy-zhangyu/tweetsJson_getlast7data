@@ -1,0 +1,2 @@
+# tweetsJson_getlast7data
+查询blastai中存储到mangodb中的最新7条数据
