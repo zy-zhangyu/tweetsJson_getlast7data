@@ -1,2 +1,2 @@
-# tweetsJson_getlast7data
-查询blastai中存储到mangodb中的最新7条数据
+# blastai_getlogo2
+blastai中获取各种tokens的图标 先查询token在coinmarketcap.com中对应的特定id  再根据id拼凑对应的url

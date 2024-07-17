@@ -1,10 +1,10 @@
 {
-  "name": "blastai-getinfo",
+  "name": "blastai-getlogo2",
   "version": "1.0.0",
   "description": "",
-  "main": "json_store_v2.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node json_store_v2.js"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",

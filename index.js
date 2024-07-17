@@ -1,33 +1,62 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 80;
+const port = process.env.PORT || 3000; // 默认使用3000端口，你也可以根据需要修改
+app.use(cors());
+app.use(bodyParser.json());
 
-// MongoDB 连接 URI
-const uri = 'mongodb+srv://dubai52233:Aaqweqweqwe123@cluster0.5p8on8l.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'; // 根据您的 MongoDB 配置修改
+const API_KEYS = [
+    '855bac07-653d-4ead-8ef2-200d2da01d93',
+    '0a32bbc8-6eb3-44cd-8f6d-cc42a073cbc1'
 
-// 添加一个新的路由来查询最后7条数据
-app.get('/getLast7Data', async (req, res) => {
+];
+let currentApiKeyIndex = 0;
+
+const API_URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map';
+
+async function fetchTokenId(symbol) {
+    const apiKey = API_KEYS[currentApiKeyIndex];
+    const headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': apiKey,
+    };
+
     try {
-        // 连接 MongoDB
-        const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-        await client.connect();
-
-        const database = client.db('Blastai');
-        const collection = database.collection('Blastai');
-
-        // 查询集合中最后7条数据，按照 _id 倒序排序
-        const last7Data = await collection.find().sort({ _id: -1 }).limit(7).toArray();
-
-        await client.close();
-
-        res.json(last7Data); // 将查询结果以 JSON 格式发送回客户端
+        const response = await axios.get(API_URL, { headers, params: { symbol } });
+        const data = response.data;
+        if (data.status.error_code === 0 && data.data.length > 0) {
+            return data.data[0].id;
+        } else {
+            throw new Error('Symbol not found');
+        }
     } catch (error) {
-        res.status(500).json({ error: '发生错误：' + error.message });
+        console.error('Error fetching data from CoinMarketCap:', error);
+        // 如果是API key相关的错误，尝试下一个API key
+        if (error.response && error.response.status === 429) { // 429表示API rate limit exceeded
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % API_KEYS.length;
+        }
+        throw error;
+    }
+}
+
+app.get('/get_id/:symbol', async (req, res) => {
+    const symbol = req.params.symbol;
+    if (!symbol) {
+        return res.status(400).json({ error: "Missing 'symbol' parameter" });
+    }
+
+    try {
+        const id = await fetchTokenId(symbol);
+        const logo = `https://s2.coinmarketcap.com/static/img/coins/64x64/${id}.png`
+        return res.status(200).json({ logo });
+    } catch (error) {
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 app.listen(port, () => {
-    console.log(`服务器运行在 http://localhost:${port}`);
+    console.log(`Server is running on http://localhost:${port}`);
 });
